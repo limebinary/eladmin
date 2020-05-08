@@ -1,11 +1,30 @@
+/*
+ *  Copyright 2019-2020 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package me.zhengjie.modules.security.security;
 
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.modules.security.config.SecurityProperties;
+import me.zhengjie.utils.RedisUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -26,16 +46,13 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class TokenProvider implements InitializingBean {
 
    private final SecurityProperties properties;
+   private final RedisUtils redisUtils;
    private static final String AUTHORITIES_KEY = "auth";
    private Key key;
-
-   public TokenProvider(SecurityProperties properties) {
-      this.properties = properties;
-   }
-
 
    @Override
    public void afterPropertiesSet() {
@@ -48,14 +65,10 @@ public class TokenProvider implements InitializingBean {
          .map(GrantedAuthority::getAuthority)
          .collect(Collectors.joining(","));
 
-      long now = (new Date()).getTime();
-      Date validity = new Date(now + properties.getTokenValidityInSeconds());
-
       return Jwts.builder()
          .setSubject(authentication.getName())
          .claim(AUTHORITIES_KEY, authorities)
          .signWith(key, SignatureAlgorithm.HS512)
-         .setExpiration(validity)
          .compact();
    }
 
@@ -66,7 +79,7 @@ public class TokenProvider implements InitializingBean {
          .getBody();
 
       // fix bug: 当前用户如果没有任何权限时，在输入用户名后，刷新验证码会抛IllegalArgumentException
-       Object authoritiesStr = claims.get(AUTHORITIES_KEY);
+      Object authoritiesStr = claims.get(AUTHORITIES_KEY);
       Collection<? extends GrantedAuthority> authorities =
               ObjectUtil.isNotEmpty(authoritiesStr) ?
        Arrays.stream(authoritiesStr.toString().split(","))
@@ -78,24 +91,20 @@ public class TokenProvider implements InitializingBean {
       return new UsernamePasswordAuthenticationToken(principal, token, authorities);
    }
 
-   boolean validateToken(String authToken) {
-      try {
-         Jwts.parser().setSigningKey(key).parseClaimsJws(authToken);
-         return true;
-      } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-         log.info("Invalid JWT signature.");
-         e.printStackTrace();
-      } catch (ExpiredJwtException e) {
-         log.info("Expired JWT token.");
-         e.printStackTrace();
-      } catch (UnsupportedJwtException e) {
-         log.info("Unsupported JWT token.");
-         e.printStackTrace();
-      } catch (IllegalArgumentException e) {
-         log.info("JWT token compact of handler are invalid.");
-         e.printStackTrace();
+   /**
+    * @param token 需要检查的token
+    */
+   public void checkRenewal(String token){
+      // 判断是否续期token,计算token的过期时间
+      long time = redisUtils.getExpire(properties.getOnlineKey() + token) * 1000;
+      Date expireDate = DateUtil.offset(new Date(), DateField.MILLISECOND, (int) time);
+      // 判断当前时间与过期时间的时间差
+      long differ = expireDate.getTime() - new Date().getTime();
+      // 如果在续期检查的范围内，则续期
+      if(differ <= properties.getDetect()){
+         long renew = time + properties.getRenew();
+         redisUtils.expire(properties.getOnlineKey() + token, renew, TimeUnit.MILLISECONDS);
       }
-      return false;
    }
 
    public String getToken(HttpServletRequest request){
