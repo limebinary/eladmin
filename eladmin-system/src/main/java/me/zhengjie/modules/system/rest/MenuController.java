@@ -25,6 +25,7 @@ import me.zhengjie.modules.system.service.MenuService;
 import me.zhengjie.modules.system.service.RoleService;
 import me.zhengjie.modules.system.service.dto.MenuDto;
 import me.zhengjie.modules.system.service.dto.MenuQueryCriteria;
+import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,10 +33,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Zheng Jie
@@ -46,7 +44,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Api(tags = "系统：菜单管理")
 @RequestMapping("/api/menus")
-@SuppressWarnings("unchecked")
 public class MenuController {
 
     private final MenuService menuService;
@@ -57,32 +54,45 @@ public class MenuController {
     @ApiOperation("导出菜单数据")
     @GetMapping(value = "/download")
     @PreAuthorize("@el.check('menu:list')")
-    public void download(HttpServletResponse response, MenuQueryCriteria criteria) throws IOException {
-        menuService.download(menuService.queryAll(criteria), response);
+    public void download(HttpServletResponse response, MenuQueryCriteria criteria) throws Exception {
+        menuService.download(menuService.queryAll(criteria, false), response);
     }
 
     @ApiOperation("获取前端所需菜单")
     @GetMapping(value = "/build")
     public ResponseEntity<Object> buildMenus(){
         List<MenuDto> menuDtoList = menuService.findByRoles(roleService.findByUsersId(SecurityUtils.getCurrentUserId()));
-        List<MenuDto> menuDtos = (List<MenuDto>) menuService.buildTree(menuDtoList).get("content");
+        List<MenuDto> menuDtos = menuService.buildTree(menuDtoList);
         return new ResponseEntity<>(menuService.buildMenus(menuDtos),HttpStatus.OK);
     }
 
     @ApiOperation("返回全部的菜单")
-    @GetMapping(value = "/tree")
+    @GetMapping(value = "/lazy")
     @PreAuthorize("@el.check('menu:list','roles:list')")
-    public ResponseEntity<Object> getMenuTree(){
-        return new ResponseEntity<>(menuService.getMenuTree(menuService.findByPid(0L)),HttpStatus.OK);
+    public ResponseEntity<Object> getMenus(@RequestParam Long pid){
+        return new ResponseEntity<>(menuService.getMenus(pid),HttpStatus.OK);
     }
 
     @Log("查询菜单")
     @ApiOperation("查询菜单")
     @GetMapping
     @PreAuthorize("@el.check('menu:list')")
-    public ResponseEntity<Object> getMenus(MenuQueryCriteria criteria){
-        List<MenuDto> menuDtoList = menuService.queryAll(criteria);
-        return new ResponseEntity<>(menuService.buildTree(menuDtoList),HttpStatus.OK);
+    public ResponseEntity<Object> getMenus(MenuQueryCriteria criteria) throws Exception {
+        List<MenuDto> menuDtoList = menuService.queryAll(criteria, true);
+        return new ResponseEntity<>(PageUtil.toPage(menuDtoList, menuDtoList.size()),HttpStatus.OK);
+    }
+
+    @Log("查询菜单")
+    @ApiOperation("查询菜单:根据ID获取同级与上级数据")
+    @GetMapping("/superior")
+    @PreAuthorize("@el.check('menu:list')")
+    public ResponseEntity<Object> getSuperior(@RequestParam List<Long> ids) {
+        Set<MenuDto> menuDtos = new LinkedHashSet<>();
+        for (Long id : ids) {
+            MenuDto menuDto = menuService.findById(id);
+            menuDtos.addAll(menuService.getSuperior(menuDto, new ArrayList<>()));
+        }
+        return new ResponseEntity<>(menuService.buildTree(new ArrayList<>(menuDtos)),HttpStatus.OK);
     }
 
     @Log("新增菜单")
