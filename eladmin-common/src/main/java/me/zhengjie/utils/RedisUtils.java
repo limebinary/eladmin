@@ -160,12 +160,23 @@ public class RedisUtils {
      * 删除缓存
      * @param key 可以传一个值 或多个
      */
-    public void del(String... key) {
-        if (key != null && key.length > 0) {
-            if (key.length == 1) {
-                redisTemplate.delete(key[0]);
+    public void del(String... keys) {
+        if (keys != null && keys.length > 0) {
+            if (keys.length == 1) {
+                boolean result = redisTemplate.delete(keys[0]);
+                System.out.println("--------------------------------------------");
+                System.out.println(new StringBuilder("删除缓存：").append(keys[0]).append("，结果：").append(result));
+                System.out.println("--------------------------------------------");
             } else {
-                redisTemplate.delete(CollectionUtils.arrayToList(key));
+                Set<Object> keySet = new HashSet<>();
+                for (String key : keys) {
+                    keySet.addAll(redisTemplate.keys(key));
+                }
+                long count = redisTemplate.delete(keySet);
+                System.out.println("--------------------------------------------");
+                System.out.println("成功删除缓存：" + keySet.toString());
+                System.out.println("缓存删除数量：" + count + "个");
+                System.out.println("--------------------------------------------");
             }
         }
     }
@@ -646,14 +657,19 @@ public class RedisUtils {
 
     /**
      *
-     * @param dict
-     * @param ids
+     * @param prefix 前缀
+     * @param ids id
      */
     public void delByKeys(String prefix, Set<Long> ids) {
-        List<String> keys = new ArrayList<>();
+        Set<Object> keys = new HashSet<>();
         for (Long id : ids) {
-            keys.add(new StringBuffer(prefix).append(id).toString());
+            keys.addAll(redisTemplate.keys(new StringBuffer(prefix).append(id).toString()));
         }
-        redisTemplate.delete(keys);
+        long count = redisTemplate.delete(keys);
+        // 此处提示可自行删除
+        System.out.println("--------------------------------------------");
+        System.out.println("成功删除缓存：" + keys.toString());
+        System.out.println("缓存删除数量：" + count + "个");
+        System.out.println("--------------------------------------------");
     }
 }
