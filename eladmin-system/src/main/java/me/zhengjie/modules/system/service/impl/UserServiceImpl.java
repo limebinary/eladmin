@@ -33,7 +33,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
@@ -49,7 +48,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @CacheConfig(cacheNames = "user")
-@Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -70,6 +68,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     @Cacheable(key = "'id:' + #p0")
     public UserDto findById(long id) {
         User user = userRepository.findById(id).orElseGet(User::new);
@@ -167,7 +166,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateAvatar(MultipartFile multipartFile) {
+    public Map<String, String> updateAvatar(MultipartFile multipartFile) {
         User user = userRepository.findByUsername(SecurityUtils.getCurrentUsername());
         String oldPath = user.getAvatarPath();
         File file = FileUtil.upload(multipartFile, properties.getPath().getAvatar());
@@ -178,6 +177,7 @@ public class UserServiceImpl implements UserService {
             FileUtil.del(oldPath);
         }
         redisUtils.del("user::username:" + user.getUsername());
+        return new HashMap<String,String>(){{put("avatar",file.getName());}};
     }
 
     @Override
@@ -196,7 +196,7 @@ public class UserServiceImpl implements UserService {
             map.put("用户名", userDTO.getUsername());
             map.put("角色", roles);
             map.put("部门", userDTO.getDept().getName());
-            map.put("岗位", userDTO.getJobs().stream().map(JobSmallDto::getName).toString());
+            map.put("岗位", userDTO.getJobs().stream().map(JobSmallDto::getName).collect(Collectors.toList()));
             map.put("邮箱", userDTO.getEmail());
             map.put("状态", userDTO.getEnabled() ? "启用" : "禁用");
             map.put("手机号码", userDTO.getPhone());
