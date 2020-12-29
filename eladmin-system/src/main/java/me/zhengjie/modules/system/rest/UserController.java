@@ -79,8 +79,7 @@ public class UserController {
     public ResponseEntity<Object> query(UserQueryCriteria criteria, Pageable pageable){
         if (!ObjectUtils.isEmpty(criteria.getDeptId())) {
             criteria.getDeptIds().add(criteria.getDeptId());
-            criteria.getDeptIds().addAll(deptService.getDeptChildren(criteria.getDeptId(),
-                    deptService.findByPid(criteria.getDeptId())));
+            criteria.getDeptIds().addAll(deptService.getDeptChildren(deptService.findByPid(criteria.getDeptId())));
         }
         // 数据权限
         List<Long> dataScopes = dataService.getDeptIds(userService.findByName(SecurityUtils.getCurrentUsername()));
@@ -115,7 +114,7 @@ public class UserController {
     @ApiOperation("修改用户")
     @PutMapping
     @PreAuthorize("@el.check('user:edit')")
-    public ResponseEntity<Object> update(@Validated(User.Update.class) @RequestBody User resources){
+    public ResponseEntity<Object> update(@Validated(User.Update.class) @RequestBody User resources) throws Exception {
         checkLevel(resources);
         userService.update(resources);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
