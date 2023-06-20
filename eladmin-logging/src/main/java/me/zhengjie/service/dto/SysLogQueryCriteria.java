@@ -13,35 +13,30 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package me.zhengjie.utils;
+package me.zhengjie.service.dto;
+
+import lombok.Data;
+import me.zhengjie.annotation.Query;
+import java.sql.Timestamp;
+import java.util.List;
 
 /**
- * 常用静态常量
- *
+ * 日志查询类
  * @author Zheng Jie
- * @date 2018-12-26
+ * @date 2019-6-4 09:23:07
  */
-public class ElAdminConstant {
+@Data
+public class SysLogQueryCriteria {
 
-    /**
-     * 用于IP定位转换
-     */
-    public static final String REGION = "内网IP|内网IP";
-    /**
-     * win 系统
-     */
-    public static final String WIN = "win";
+    @Query(blurry = "username,description,address,requestIp,method,params")
+    private String blurry;
 
-    /**
-     * mac 系统
-     */
-    public static final String MAC = "mac";
+    @Query
+    private String username;
 
-    /**
-     * 常用接口
-     */
-    public static class Url {
-        // IP归属地查询
-        public static final String IP_URL = "http://whois.pconline.com.cn/ipJson.jsp?ip=%s&json=true";
-    }
+    @Query
+    private String logType;
+
+    @Query(type = Query.Type.BETWEEN)
+    private List<Timestamp> createTime;
 }

@@ -13,26 +13,34 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package me.zhengjie.config;
+package me.zhengjie.service.dto;
 
 import lombok.Data;
-import me.zhengjie.utils.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import java.io.Serializable;
+import java.sql.Timestamp;
 
 /**
- * @author Zheng Jie
- * @description
- * @date 2021-11-22
- **/
+* @author Zheng Jie
+* @date 2019-5-22
+*/
 @Data
-@Component
-public class ElAdminProperties {
+public class SysLogErrorDto implements Serializable {
 
-    public static Boolean ipLocal;
+    private Long id;
 
-    @Value("${ip.local-parsing}")
-    public void setIpLocal(Boolean ipLocal) {
-        ElAdminProperties.ipLocal = ipLocal;
-    }
+    private String username;
+
+    private String description;
+
+    private String method;
+
+    private String params;
+
+    private String browser;
+
+    private String requestIp;
+
+    private String address;
+
+    private Timestamp createTime;
 }

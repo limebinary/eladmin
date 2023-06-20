@@ -13,30 +13,22 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package me.zhengjie.service.dto;
-
-import lombok.Data;
-import me.zhengjie.annotation.Query;
-import java.sql.Timestamp;
-import java.util.List;
+package me.zhengjie.utils;
 
 /**
- * 日志查询类
+ * 常用静态常量
+ *
  * @author Zheng Jie
- * @date 2019-6-4 09:23:07
+ * @date 2018-12-26
  */
-@Data
-public class LogQueryCriteria {
+public class ElConstant {
+    /**
+     * win 系统
+     */
+    public static final String WIN = "win";
 
-    @Query(blurry = "username,description,address,requestIp,method,params")
-    private String blurry;
-
-    @Query
-    private String username;
-
-    @Query
-    private String logType;
-
-    @Query(type = Query.Type.BETWEEN)
-    private List<Timestamp> createTime;
+    /**
+     * mac 系统
+     */
+    public static final String MAC = "mac";
 }
