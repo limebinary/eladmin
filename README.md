@@ -10,6 +10,7 @@
 
 #### 项目简介
 一个基于 Spring Boot 2.1.0 、 Spring Boot Jpa、 JWT、Spring Security、Redis、Vue的前后端分离的后台管理系统
+现已发布基于 mybatis-plus 版本，项目地址：[https://github.com/elunez/eladmin-mp](https://github.com/elunez/eladmin-mp)。
 
 **开发文档：**  [https://eladmin.vip](https://eladmin.vip)
 
@@ -108,7 +109,7 @@
 - 感谢 [d15801543974](https://github.com/d15801543974) 大佬提供的基于注解的通用查询方式
 
 #### 项目捐赠
-项目的发展离不开你的支持，请作者喝杯咖啡吧☕  [Donate](https://eladmin.vip/donation/)
+项目的发展离不开你的支持，请作者喝杯咖啡吧☕  [Donate](https://eladmin.vip/pages/030101/)
 
 #### 反馈交流
-- QQ交流群：一群：<strike>891137268</strike> 、二群：<strike>947578238</strike>、三群：659622532
+- QQ交流群：891137268 、947578238、659622532
